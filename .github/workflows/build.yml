@@ -20,13 +20,12 @@ jobs:
         run: |
           mkdir extracted
           unzip -o FG.zip -d extracted
-          find extracted -name settings.gradle -o -name settings.gradle.kts
 
-      - name: Find Android project
+      - name: Find Android Project
         run: |
-          PROJECT_DIR=$(dirname "$(find extracted -name settings.gradle.kts -o -name settings.gradle | head -n 1)")
+          PROJECT_DIR=$(dirname "$(find extracted \( -name settings.gradle.kts -o -name settings.gradle \) | head -n 1)")
           echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-          echo "Project found: $PROJECT_DIR"
+          echo "Found: $PROJECT_DIR"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -38,6 +37,18 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+
+      - name: Fix Kotlin JVM Target
+        run: |
+          FILE="$PROJECT_DIR/app/build.gradle.kts"
+          cat >> "$FILE" <<'EOF'
+
+          tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+          }
+          EOF
 
       - name: Build Android APK
         run: gradle -p "$PROJECT_DIR" assembleDebug
